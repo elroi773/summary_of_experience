@@ -3,6 +3,7 @@ import CheckoutPage from "./Checkoutpage";
 import MyStrength from "./MyStrength";
 import AddExperience from "./AddExperience";
 import Result from "./Result";
+import MyExperience from "./MyExperience";
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
       <Route path="/my-strength" element={<MyStrength />} />
       <Route path="/addexperience" element={<AddExperience />} />
       <Route path="/result" element={<Result />} />
+      <Route path="/myexperience" element={<MyExperience />} />
     </Routes>
   );
 }
