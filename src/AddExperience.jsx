@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import "./AddExperience.css";
 import { supabase } from "./supabaseClient"; // ✅ Supabase 클라이언트
+import { useNavigate } from "react-router-dom"; // ✅ 저장 후 이동
 
 export default function AddExperience() {
   // 폼 상태
@@ -10,10 +11,15 @@ export default function AddExperience() {
   const [desc, setDesc] = useState("");
   const [star, setStar] = useState({ s: "", t: "", a: "", r: "" });
 
+  // 🔹 교내/교외 토글
+  const [scope, setScope] = useState(""); // "" | "교내" | "교외"
+
   // UI 상태
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedStrengths, setSelectedStrengths] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  const navigate = useNavigate();
 
   // 강점 옵션
   const strengthOptions = useMemo(
@@ -68,10 +74,13 @@ export default function AddExperience() {
       alert("날짜를 입력해주세요.");
       return;
     }
-
     const activity_on = normalizeDate(date);
     if (!activity_on) {
       alert("날짜 형식은 YYYY.MM.DD 입니다.");
+      return;
+    }
+    if (!scope) {
+      alert("교내/교외를 선택해주세요.");
       return;
     }
     if (selectedStrengths.length > 3) {
@@ -82,15 +91,15 @@ export default function AddExperience() {
     setSaving(true);
     try {
       const payload = {
-        // ✅ 로그인 없이 저장: user_id 제거
         title,
-        activity_on,              // DATE 타입 권장
+        activity_on,                 // DATE 타입 권장
         description: desc,
         strengths: selectedStrengths, // text[] 또는 jsonb
         star_s: star.s,
         star_t: star.t,
         star_a: star.a,
         star_r: star.r,
+        scope,                       // 🔹 교내/교외 저장
       };
 
       const { error } = await supabase.from("experiences").insert(payload);
@@ -101,13 +110,15 @@ export default function AddExperience() {
       }
 
       alert("저장되었습니다!");
-      navigate("/result");
       // reset
       setTitle("");
       setDate("");
       setDesc("");
       setSelectedStrengths([]);
       setStar({ s: "", t: "", a: "", r: "" });
+      setScope("");
+
+      navigate("/result");
     } finally {
       setSaving(false);
     }
@@ -161,6 +172,26 @@ export default function AddExperience() {
               maxLength={10}
             />
           </div>
+        </div>
+
+        {/* 🔹 교내/교외 토글 (세그먼트 컨트롤) */}
+        <div className="row-scope" role="group" aria-label="교내/교외 선택">
+          <button
+            type="button"
+            className={`seg-btn ${scope === "교내" ? "active" : ""}`}
+            onClick={() => setScope("교내")}
+            aria-pressed={scope === "교내"}
+          >
+            교내
+          </button>
+          <button
+            type="button"
+            className={`seg-btn ${scope === "교외" ? "active" : ""}`}
+            onClick={() => setScope("교외")}
+            aria-pressed={scope === "교외"}
+          >
+            교외
+          </button>
         </div>
 
         <div className="row-desc">
@@ -245,9 +276,7 @@ export default function AddExperience() {
                     aria-label={`${s} 제거`}
                   >
                     {s}
-                    <span className="chip-x" aria-hidden="true">
-                      ×
-                    </span>
+                    <span className="chip-x" aria-hidden="true">×</span>
                   </button>
                 ))}
               </div>
