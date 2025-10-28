@@ -135,6 +135,7 @@ body {
 
 /* ========== 우측 상단 ADD 버튼 ========== */
 .addexp-add {
+  color: #cacaca;
   border: 1px solid color-mix(in oklab, var(--neon) 55%, #fff 0%);
   background: linear-gradient(
     180deg,
@@ -531,4 +532,25 @@ body {
   .date-chip {
     height: 50px;
   }
+}
+
+/* AddExperience.css (추가 예시) */
+.row-scope {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+.seg-btn {
+  color: #a2a2a2;
+  padding: 10px 16px;
+  border-radius: 9999px;
+  border: 1px solid rgba(202, 255, 79, 0.25);
+  background: rgba(155, 255, 79, 0.08);
+  font-weight: 600;
+  cursor: pointer;
+}
+.seg-btn.active {
+  border: 1px solid rgba(202, 255, 79, 0.25);
+  background: rgba(155, 255, 79, 0.08);
+  box-shadow: 0 0 10px rgba(79, 255, 120, 0.35);
 }
