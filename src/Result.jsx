@@ -1,5 +1,5 @@
 // Result.jsx
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import "./Result.css";
@@ -15,26 +15,66 @@ export default function Result() {
     return m ? `${m[1]}.${m[2]}.${m[3]}` : d;
   };
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
+  // strengths가 text[] / jsonb / string 어떤 형태여도 안전하게 문자열로
+  const strengthsToText = (v) => {
+    if (!v) return "";
+    if (Array.isArray(v)) return v.join(", ");
+    if (typeof v === "string") return v;         // 이미 join된 문자열
+    if (typeof v === "object") {
+      try {
+        // jsonb가 {0:"...", 1:"..."} 형태인 경우 등
+        const arr = Array.isArray(v) ? v : Object.values(v);
+        return Array.isArray(arr) ? arr.join(", ") : "";
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  };
+
+  // scope 컬럼 유무에 따라 자동 fallback
+  const trySelect = useCallback(async () => {
+    // 1차: scope 포함해서 시도
+    let q = supabase
       .from("experiences")
-      // scope 컬럼이 있으면 함께 가져오고, 없으면 무시됩니다.
       .select("id, activity_on, title, description, strengths, star_s, star_t, star_a, star_r, scope")
       .order("activity_on", { ascending: false })
       .order("id", { ascending: false });
-    if (!error) setRows(data ?? []);
+
+    let { data, error } = await q;
+    if (error) {
+      // scope가 없는 테이블이면 400이 날 수 있음 → scope 제거 후 재시도
+      console.warn("[Result] select with scope failed, retrying without scope:", error.message);
+      const retry = await supabase
+        .from("experiences")
+        .select("id, activity_on, title, description, strengths, star_s, star_t, star_a, star_r")
+        .order("activity_on", { ascending: false })
+        .order("id", { ascending: false });
+      return retry;
+    }
+    return { data, error: null };
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await trySelect();
+    if (error) {
+      console.error("[Result] load error:", error.message);
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+    setRows(data ?? []);
     setLoading(false);
-  };
+  }, [trySelect]);
 
   useEffect(() => {
     load();
 
-    // 실시간 반영(선택): 새 행이 들어오면 상단에 추가
+    // 실시간 INSERT 반영
     const ch = supabase
       .channel("experiences-list")
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "experiences" },
         (payload) => setRows((prev) => [payload.new, ...prev])
       )
@@ -43,7 +83,7 @@ export default function Result() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, []);
+  }, [load]);
 
   const empty = useMemo(() => !loading && rows.length === 0, [loading, rows]);
 
@@ -82,18 +122,14 @@ export default function Result() {
             )}
 
             {rows.map((r) => {
-              // scope 컬럼이 없다면 표시용으로 대시 처리
+              // scope 없으면 제목 키워드로 간단 추정 (교내/교외), 없으면 '—'
               const scope =
                 r.scope ??
-                // 제목에 키워드가 있으면 간단 추정(없으면 '—')
                 (typeof r.title === "string" && /교내/.test(r.title)
                   ? "교내"
                   : typeof r.title === "string" && /교외/.test(r.title)
                   ? "교외"
                   : "—");
-
-              const strengths =
-                Array.isArray(r.strengths) ? r.strengths.join(", ") : "";
 
               return (
                 <tr key={r.id}>
@@ -104,7 +140,6 @@ export default function Result() {
                     {r.description && (
                       <div className="cell-desc">{r.description}</div>
                     )}
-                    {/* 필요하면 STAR 자세히 보기 */}
                     {(r.star_s || r.star_t || r.star_a || r.star_r) && (
                       <details className="cell-star">
                         <summary>STAR 보기</summary>
@@ -115,7 +150,7 @@ export default function Result() {
                       </details>
                     )}
                   </td>
-                  <td>{strengths}</td>
+                  <td>{strengthsToText(r.strengths)}</td>
                 </tr>
               );
             })}
