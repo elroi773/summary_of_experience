@@ -143,3 +143,33 @@
     .btn-primary, .btn-ghost { padding: 8px 14px; }
   }
   
+
+  @media (max-width: 768px) {
+    .strength-container {
+      padding: 10px;
+    }
+  
+    .strength-title {
+      font-size: 1.5rem;
+    }
+  
+    .subtitle {
+      font-size: 1.2rem;
+    }
+  
+    .Result {
+      padding: 15px;
+      font-size: 1rem;
+      text-align: center;
+    }
+  
+    .Result .result-title {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+    }
+  
+    .Result .result-content {
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+  }
