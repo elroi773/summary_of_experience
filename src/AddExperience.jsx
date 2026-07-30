@@ -12,6 +12,9 @@ export default function AddExperience() {
   const [star, setStar] = useState({ s: "", t: "", a: "", r: "" });
 
   // 🔹 교내/교외 토글
+
+
+
   const [scope, setScope] = useState(""); // "" | "교내" | "교외"
 
   // UI 상태
